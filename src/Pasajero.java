@@ -1,3 +1,6 @@
+import java.util.ArrayList;
+import java.util.List;
+
 public class Pasajero extends Persona{
 
     //Atributos:
@@ -35,7 +38,7 @@ public class Pasajero extends Persona{
     @Override
     public String toString(){ //Obtiene informacion detallada acerca de un pasajero
     
-        return "pasajero [ " +super.toString +"historial de habitaciones" +historialHabitaciones.toString() +"]";
+        return "pasajero [ " +super.toString() +", historial de habitaciones: " +historialHabitaciones +"]";
     }   
   
 }

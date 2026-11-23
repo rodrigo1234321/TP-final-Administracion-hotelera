@@ -13,6 +13,7 @@ public abstract class Habitacion {
     {
         this.numero = numero;
         this.precioPorNoche = precioPorNoche;
+        this.estado = EstadoHabitacion.DISPONIBLE;
     }
 
 
@@ -54,7 +55,12 @@ public abstract class Habitacion {
     @Override
     public boolean equals(Object o) //Compara si dos habitaciones son iguales o no, dos habitaciones son iguales si tuviesen el mismo numero de habitacion
     {
-        return this.numero == ((Habitacion) o).numero;
+        if (!(o instanceof Habitacion))
+        {
+            return false;
+        }
+        Habitacion habitacion = (Habitacion) o;
+        return this.numero == habitacion.numero;
     }
 
     @Override

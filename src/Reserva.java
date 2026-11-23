@@ -1,24 +1,33 @@
-public class Reserva implements Ireservable{
+import java.time.LocalDate;
+
+public final class Reserva implements IReservable{
 
     //Atributos:
     private int idReserva;
     private Pasajero pasajero; //Pasajero que realiza la reserva
     private Habitacion habitacion; //habitacion en la que se realizo la reserva
-    private LocalDate fechaInicio; //Fecha en la que se inicio la reserva
-    private LocalDate fechaFin; //Fecha en la que se finalizo la reserva
+    private LocalDate fechaInicio; //Fecha de ingreso prevista
+    private LocalDate fechaFin; //Fecha de salida prevista
     private boolean checkInRealizado; //Indica si se inicio la estadia del pasajero en la habitacion
     private boolean checkOutRealizado; //Indica si se finalizo la estadia del pasajero en la habitacion
+    private boolean cancelada;
 
 
 
     //Constructor de la clase:
-    public void Reserva(int id, Pasajero p, Habitacion h, LocalDate ini, LocalDate fin)
+    public Reserva(int id, Pasajero p, Habitacion h, LocalDate ini, LocalDate fin)
+            throws ReservaInvalidaException
     {
+        if (id <= 0 || h == null)
+        {
+            throw new ReservaInvalidaException("La reserva requiere un ID válido y una habitación.");
+        }
         this.idReserva = id;
-        this.pasajero = p;
         this.habitacion = h;
-        this.fechaInicio = ini;
-        this.fechaFin = fin;
+        if (!reservar(p, ini, fin))
+        {
+            throw new ReservaInvalidaException("Revisa el pasajero y las fechas de la reserva.");
+        }
     }
 
 
@@ -39,72 +48,77 @@ public class Reserva implements Ireservable{
         return habitacion;
     }
 
-    public boolean isActivaEnPeriodo(LocalDate ini, LocalDate fin) //Indica si se finalizo la reserva o no
+    //La fecha de salida queda fuera del periodo reservado.
+    public boolean isActivaEnPeriodo(LocalDate ini, LocalDate fin)
     {
-         if(ini.compareTo(fin) >= 0)
-         {
-             return true;
-         }
-         else
-         {
-             return false;
-         }
+        if (cancelada || checkOutRealizado || ini == null || fin == null || !ini.isBefore(fin))
+        {
+            return false;
+        }
+        return fechaInicio.isBefore(fin) && ini.isBefore(fechaFin);
     }
 
-    public void realizarCheckIn() //Se inicia la estadia del pasajero en la habitacion
+    public void realizarCheckIn() throws ReservaInvalidaException //Inicia la estadia
     {
+        if (cancelada || checkInRealizado)
+        {
+            throw new ReservaInvalidaException("La reserva no admite el check-in.");
+        }
         checkInRealizado = true;
     }
 
-    public void realizarCheckOut() //Se finaliza la estadia del pasajero en la habitacion
+    public void realizarCheckOut() throws ReservaInvalidaException //Finaliza la estadia
     {
+        if (!checkInRealizado || checkOutRealizado)
+        {
+            throw new ReservaInvalidaException("La reserva no admite el check-out.");
+        }
         checkOutRealizado = true;
     }
 
-    public double calcularTotal() //Calcula el precio total de la reserva
+    //Resta el dia de entrada al dia de salida para obtener las noches.
+    public double calcularTotal() throws ReservaInvalidaException
     {
-        double total = (fechaInicio.getDayOfYear() - fechaFin.getDayOfYear()) * habitacion.getPrecioPorNoche();
-
-        return total;
+        int dias = (int) (fechaFin.toEpochDay() - fechaInicio.toEpochDay());
+        return calcularCostoEstadia(dias);
     }
 
-    public boolean reservar(Pasajero p, LocalDate inicio, LocalDate fin) //Se realiza la reserva
+    //Asigna el pasajero y las fechas una sola vez al construir la reserva.
+    @Override
+    public boolean reservar(Pasajero p, LocalDate inicio, LocalDate fin)
     {
-        if(this.checkInRealizado == true)
+        if (pasajero != null || p == null || inicio == null || fin == null
+                || !inicio.isBefore(fin)
+                || (fin.toEpochDay() - inicio.toEpochDay()) > Integer.MAX_VALUE)
         {
-            return false; //No se pudo realizar la reserva
+            return false;
         }
-        else
-        {
-            this.pasajero = p;
-            this.fechaInicio = inicio;
-            this.fechaFin = fin;
-            this.checkInRealizado = true;
-
-            return true; //Se pudo realizar la reserva
-        }
-
+        this.pasajero = p;
+        this.fechaInicio = inicio;
+        this.fechaFin = fin;
+        return true;
     }
 
-    public boolean cancelarReserva(int idReserva) //Se realiza una cancelacion de la reserva
+    @Override
+    public boolean cancelarReserva(int idReserva) //Cancela una reserva antes del check-in
     {
-        if(this.checkInRealizado == true)
+        if (this.idReserva != idReserva || cancelada || checkInRealizado)
         {
-            checkInRealizado = false;
-
-            return true; //Se pudo cancelar la reserva
+            return false;
         }
-        else
-        {
-            return false; //No se pudo cancelar la reserva
-        }
+        cancelada = true;
+        return true;
     }
 
-    public double calcularCostoEstadia(int dias) //Se realiza el calculo del costo de la estadia
+    @Override
+    public double calcularCostoEstadia(int dias) throws ReservaInvalidaException
     {
-        double costoEstadia = dias * habitacion.getPrecioPorNoche();
-
-        return costoEstadia;
+        if (dias <= 0)
+        {
+            throw new ReservaInvalidaException("La estadia tiene que durar al menos una noche.");
+        }
+        //Cada tipo de habitacion aplica su propia tarifa.
+        return habitacion.calcularTarifa(dias);
     }
 
 }
