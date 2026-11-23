@@ -48,6 +48,21 @@ public final class Reserva implements IReservable{
         return habitacion;
     }
 
+    public LocalDate getFechaInicio()
+    {
+        return fechaInicio;
+    }
+
+    public LocalDate getFechaFin()
+    {
+        return fechaFin;
+    }
+
+    public boolean isOcupando()
+    {
+        return checkInRealizado && !checkOutRealizado;
+    }
+
     //La fecha de salida queda fuera del periodo reservado.
     public boolean isActivaEnPeriodo(LocalDate ini, LocalDate fin)
     {
