@@ -1,6 +1,10 @@
+package modelo;
+
+import excepciones.ReservaInvalidaException;
+
 import java.time.LocalDate;
 
-// Operaciones de una reserva.
+// operaciones de una reserva
 public interface IReservable {
     boolean reservar(Pasajero p, LocalDate inicio, LocalDate fin);
     boolean cancelarReserva(int idReserva);

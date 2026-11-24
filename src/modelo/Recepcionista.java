@@ -1,4 +1,6 @@
-// Persona del hotel identificada por su legajo y turno de recepcion.
+package modelo;
+
+// personal del hotel con legajo y turno
 public class Recepcionista extends Persona {
     private int nroLegajo;
     private String turno;

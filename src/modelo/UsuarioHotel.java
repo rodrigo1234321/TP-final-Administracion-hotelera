@@ -1,3 +1,7 @@
+package modelo;
+
+import excepciones.UsuarioInvalidoException;
+
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
@@ -6,6 +10,7 @@ import java.util.UUID;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
+// datos de la cuenta y huella de la clave
 public final class UsuarioHotel {
     private final String nombre;
     private final String sal;
@@ -13,9 +18,7 @@ public final class UsuarioHotel {
     private RolUsuario rol;
 
     public UsuarioHotel(String nombre, String clave, RolUsuario rol) throws UsuarioInvalidoException {
-        if (nombre == null || !nombre.matches("[a-z0-9_]{3,32}")) {
-            throw new UsuarioInvalidoException("usa de 3 a 32 letras, numeros o guiones bajos para el usuario");
-        }
+        validarNombre(nombre);
         if (clave == null || clave.isBlank() || clave.length() < 12 || clave.length() > 128) {
             throw new UsuarioInvalidoException("usa una clave de 12 a 128 caracteres");
         }
@@ -25,12 +28,38 @@ public final class UsuarioHotel {
         this.claveProtegida = protegerClave(clave);
     }
 
+    public UsuarioHotel(String nombre, RolUsuario rol, String sal, String claveProtegida)
+            throws UsuarioInvalidoException {
+        validarNombre(nombre);
+        if (sal == null || sal.isBlank() || claveProtegida == null || claveProtegida.isBlank()) {
+            throw new UsuarioInvalidoException("faltan datos de la clave guardada");
+        }
+        this.nombre = nombre;
+        setRol(rol);
+        this.sal = sal;
+        this.claveProtegida = claveProtegida;
+    }
+
+    private void validarNombre(String nombre) throws UsuarioInvalidoException {
+        if (nombre == null || !nombre.matches("[a-z0-9_]{3,32}")) {
+            throw new UsuarioInvalidoException("usa de 3 a 32 letras, numeros o guiones bajos para el usuario");
+        }
+    }
+
     public String getNombre() {
         return nombre;
     }
 
     public RolUsuario getRol() {
         return rol;
+    }
+
+    public String getSal() {
+        return sal;
+    }
+
+    public String getClaveProtegida() {
+        return claveProtegida;
     }
 
     public void setRol(RolUsuario rol) throws UsuarioInvalidoException {
@@ -49,7 +78,6 @@ public final class UsuarioHotel {
                 claveIngresada.getBytes(StandardCharsets.UTF_8));
     }
 
-    // usa la libreria de Java para guardar una huella de la clave
     private String protegerClave(String clave) throws UsuarioInvalidoException {
         PBEKeySpec datos = new PBEKeySpec(clave.toCharArray(), sal.getBytes(StandardCharsets.UTF_8),
                 600000, 256);

@@ -1,20 +1,21 @@
+package modelo;
+
+import excepciones.ReservaInvalidaException;
+
 import java.time.LocalDate;
 
+// reserva de una habitacion; la fecha de salida no cuenta como noche
 public final class Reserva implements IReservable{
 
-    //Atributos:
     private int idReserva;
-    private Pasajero pasajero; //Pasajero que realiza la reserva
-    private Habitacion habitacion; //habitacion en la que se realizo la reserva
-    private LocalDate fechaInicio; //Fecha de ingreso prevista
-    private LocalDate fechaFin; //Fecha de salida prevista
-    private boolean checkInRealizado; //Indica si se inicio la estadia del pasajero en la habitacion
-    private boolean checkOutRealizado; //Indica si se finalizo la estadia del pasajero en la habitacion
+    private Pasajero pasajero;
+    private Habitacion habitacion;
+    private LocalDate fechaInicio;
+    private LocalDate fechaFin;
+    private boolean checkInRealizado;
+    private boolean checkOutRealizado;
     private boolean cancelada;
 
-
-
-    //Constructor de la clase:
     public Reserva(int id, Pasajero p, Habitacion h, LocalDate ini, LocalDate fin)
             throws ReservaInvalidaException
     {
@@ -30,20 +31,17 @@ public final class Reserva implements IReservable{
         }
     }
 
-
-
-    //Todos los metodos de la clase:
-    public int getIdReserva() //Obtiene el id de la reserva
+    public int getIdReserva()
     {
         return idReserva;
     }
 
-    public Pasajero getPasajero() //Obtiene al pasajero que realizo la reserva
+    public Pasajero getPasajero()
     {
         return pasajero;
     }
 
-    public Habitacion getHabitacion() //Obtiene la habitacion de la reserva
+    public Habitacion getHabitacion()
     {
         return habitacion;
     }
@@ -68,12 +66,16 @@ public final class Reserva implements IReservable{
         return cancelada;
     }
 
+    public boolean isCheckInRealizado()
+    {
+        return checkInRealizado;
+    }
+
     public boolean isCheckOutRealizado()
     {
         return checkOutRealizado;
     }
 
-    //La fecha de salida queda fuera del periodo reservado.
     public boolean isActivaEnPeriodo(LocalDate ini, LocalDate fin)
     {
         if (cancelada || checkOutRealizado || ini == null || fin == null || !ini.isBefore(fin))
@@ -83,7 +85,7 @@ public final class Reserva implements IReservable{
         return fechaInicio.isBefore(fin) && ini.isBefore(fechaFin);
     }
 
-    public void realizarCheckIn() throws ReservaInvalidaException //Inicia la estadia
+    public void realizarCheckIn() throws ReservaInvalidaException
     {
         if (cancelada || checkInRealizado)
         {
@@ -92,7 +94,7 @@ public final class Reserva implements IReservable{
         checkInRealizado = true;
     }
 
-    public void realizarCheckOut() throws ReservaInvalidaException //Finaliza la estadia
+    public void realizarCheckOut() throws ReservaInvalidaException
     {
         if (!checkInRealizado || checkOutRealizado)
         {
@@ -101,14 +103,12 @@ public final class Reserva implements IReservable{
         checkOutRealizado = true;
     }
 
-    //Resta el dia de entrada al dia de salida para obtener las noches.
     public double calcularTotal() throws ReservaInvalidaException
     {
         int dias = (int) (fechaFin.toEpochDay() - fechaInicio.toEpochDay());
         return calcularCostoEstadia(dias);
     }
 
-    //Asigna el pasajero y las fechas una sola vez al construir la reserva.
     @Override
     public boolean reservar(Pasajero p, LocalDate inicio, LocalDate fin)
     {
@@ -125,7 +125,7 @@ public final class Reserva implements IReservable{
     }
 
     @Override
-    public boolean cancelarReserva(int idReserva) //Cancela una reserva antes del check-in
+    public boolean cancelarReserva(int idReserva)
     {
         if (this.idReserva != idReserva || cancelada || checkInRealizado)
         {
@@ -142,7 +142,6 @@ public final class Reserva implements IReservable{
         {
             throw new ReservaInvalidaException("La estadia tiene que durar al menos una noche.");
         }
-        //Cada tipo de habitacion aplica su propia tarifa.
         return habitacion.calcularTarifa(dias);
     }
 

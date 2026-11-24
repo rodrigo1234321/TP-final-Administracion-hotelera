@@ -1,31 +1,37 @@
+package modelo;
+
+// suite con jacuzzi opcional y cargo de frigobar
 public final class HabitacionSuite extends Habitacion{
-     
-     //Atributos:
-    private boolean tieneJacuzzi; //Indica si la habitacion tiene o no tiene jacuzzi
-    private double servicioFrigobar; //El precio de ese servicio
 
+    private boolean tieneJacuzzi;
+    private double servicioFrigobar;
 
-    //Constructores:
     public HabitacionSuite(int numero, double precio, boolean jacuzzi, double frigobar) {
         super(numero, precio);
         this.tieneJacuzzi = jacuzzi;
         this.servicioFrigobar = frigobar;
     }
 
+    public boolean tieneJacuzzi() {
+        return tieneJacuzzi;
+    }
 
-    //Todos los metodos de la clase:
+    public double getServicioFrigobar() {
+        return servicioFrigobar;
+    }
+
     @Override
-    public double calcularTarifa(int dias) //Calcula el precio de la tarifa de la habitacion suite
+    public double calcularTarifa(int dias)
     {
         return (dias * precioPorNoche) + servicioFrigobar;
     }
 
     @Override
-    public String toString() //Retorna una cadena de texto que muestra los detalles de la habitacion suite
+    public String toString()
     {
         return "Habitacion suite [ " +super.toString()
                 +", tiene jacuzzi: " +tieneJacuzzi
                 +", precio del servicio frigobar: $" +servicioFrigobar +"]";
     }
-  
+
 }

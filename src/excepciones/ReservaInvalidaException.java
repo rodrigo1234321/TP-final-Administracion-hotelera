@@ -1,4 +1,6 @@
-// Indica que los datos o el estado de la reserva impiden la operacion.
+package excepciones;
+
+// operacion invalida sobre una reserva
 public class ReservaInvalidaException extends Exception {
     public ReservaInvalidaException(String mensaje) {
         super(mensaje);

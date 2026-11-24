@@ -1,14 +1,14 @@
+package modelo;
+
 import java.util.Objects;
 
-// Datos que comparten los pasajeros y el personal del hotel.
+// datos que comparten pasajeros y personal
 public abstract class Persona {
-    // Atributos
     protected String dni;
     protected String nombre;
     protected String origen;
     protected String domicilio;
 
-    // Constructor
     public Persona(String dni, String nombre, String origen, String domicilio) {
         this.dni = dni;
         this.nombre = nombre;
@@ -34,7 +34,6 @@ public abstract class Persona {
 
     public abstract String getTipoPersona();
 
-    // Dentro de una misma clase, el DNI identifica a la persona.
     @Override
     public boolean equals(Object o) {
         if (this == o) {

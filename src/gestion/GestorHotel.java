@@ -1,3 +1,13 @@
+package gestion;
+
+import excepciones.HabitacionNoDisponibleException;
+import excepciones.PasajeroInvalidoException;
+import excepciones.ReservaInvalidaException;
+import modelo.EstadoHabitacion;
+import modelo.Habitacion;
+import modelo.Pasajero;
+import modelo.Reserva;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,6 +44,9 @@ public class GestorHotel {
             throw new PasajeroInvalidoException("faltan datos del pasajero");
         }
         String dni = pasajero.getDni().trim();
+        if (dni.length() > 128) {
+            throw new PasajeroInvalidoException("el dni es demasiado largo");
+        }
         if (pasajerosPorDni.containsKey(dni)) {
             throw new PasajeroInvalidoException("ya existe un pasajero con ese dni");
         }
@@ -146,7 +159,6 @@ public class GestorHotel {
         return bloqueadas;
     }
 
-    // la reserva tiene la habitacion y el pasajero que la ocupa
     public List<Reserva> listarHabitacionesOcupadas() {
         List<Reserva> ocupadas = new ArrayList<>();
         for (Reserva reserva : listarReservas()) {
@@ -165,13 +177,19 @@ public class GestorHotel {
         return registroReservas.obtenerTodos();
     }
 
+    public void cargarReserva(Reserva reserva) {
+        registroReservas.agregar(reserva);
+        if (reserva.getIdReserva() >= siguienteIdReserva) {
+            siguienteIdReserva = reserva.getIdReserva() + 1;
+        }
+    }
+
     private boolean estaDisponible(Habitacion habitacion, LocalDate ini, LocalDate fin, LocalDate hoy) {
         if (estaBloqueada(habitacion)) {
             return false;
         }
         for (Reserva reserva : listarReservas()) {
             if (reserva.getHabitacion().equals(habitacion)) {
-                // mientras siga alojado despues de la fecha de salida no sabemos cuando se libera
                 if (reserva.isOcupando() && !hoy.isBefore(reserva.getFechaFin())) {
                     return false;
                 }
@@ -193,12 +211,12 @@ public class GestorHotel {
         if (ini == null || fin == null || ini.isBefore(hoy) || !ini.isBefore(fin)) {
             throw new ReservaInvalidaException("la entrada tiene que ser desde hoy y antes de la salida");
         }
-        if (fin.toEpochDay() - ini.toEpochDay() > Integer.MAX_VALUE) {
+        if (fin.getYear() > 9999 || fin.toEpochDay() - ini.toEpochDay() > Integer.MAX_VALUE) {
             throw new ReservaInvalidaException("el periodo de la reserva es demasiado largo");
         }
     }
 
-    private Habitacion buscarHabitacion(int numero) throws HabitacionNoDisponibleException {
+    public Habitacion buscarHabitacion(int numero) throws HabitacionNoDisponibleException {
         for (Habitacion habitacion : habitaciones) {
             if (habitacion.getNumero() == numero) {
                 return habitacion;
@@ -207,7 +225,7 @@ public class GestorHotel {
         throw new HabitacionNoDisponibleException("no existe esa habitacion");
     }
 
-    private Pasajero buscarPasajero(String dni) throws ReservaInvalidaException {
+    public Pasajero buscarPasajero(String dni) throws ReservaInvalidaException {
         if (faltaDato(dni)) {
             throw new ReservaInvalidaException("falta el dni del pasajero");
         }
@@ -218,7 +236,7 @@ public class GestorHotel {
         return pasajero;
     }
 
-    private Reserva buscarReserva(int idReserva) throws ReservaInvalidaException {
+    public Reserva buscarReserva(int idReserva) throws ReservaInvalidaException {
         for (Reserva reserva : listarReservas()) {
             if (reserva.getIdReserva() == idReserva) {
                 return reserva;

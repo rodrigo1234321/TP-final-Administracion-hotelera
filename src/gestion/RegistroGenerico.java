@@ -1,6 +1,9 @@
+package gestion;
+
 import java.util.ArrayList;
 import java.util.List;
 
+// lista generica para registrar elementos
 public class RegistroGenerico<T> {
     private List<T> elementos = new ArrayList<>();
 

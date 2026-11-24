@@ -1,3 +1,23 @@
+package aplicacion;
+
+import excepciones.EntradaInvalidaException;
+import excepciones.HabitacionNoDisponibleException;
+import excepciones.PasajeroInvalidoException;
+import excepciones.PersistenciaExcepcion;
+import excepciones.ReservaInvalidaException;
+import excepciones.UsuarioInvalidoException;
+import gestion.GestorHotel;
+import jdbc.ConexionDB;
+import jdbc.ConexionHotel;
+import modelo.EstadoHabitacion;
+import modelo.Habitacion;
+import modelo.HabitacionSimple;
+import modelo.HabitacionSuite;
+import modelo.Pasajero;
+import modelo.Reserva;
+import modelo.RolUsuario;
+import modelo.UsuarioHotel;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
@@ -7,25 +27,32 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
+// menu del hotel y acceso para administrador y recepcion
 public class Main {
     private final Scanner scanner;
+    private final ConexionHotel conexionHotel;
     private final GestorHotel hotel = new GestorHotel();
     private final Map<String, UsuarioHotel> usuarios = new HashMap<>();
 
-    public Main(Scanner scanner) {
+    public Main(Scanner scanner, ConexionHotel conexionHotel) {
         this.scanner = scanner;
+        this.conexionHotel = conexionHotel;
     }
 
     public static void main(String[] args) {
-        try (Scanner scanner = new Scanner(System.in)) {
-            Main programa = new Main(scanner);
+        try (Scanner scanner = new Scanner(System.in);
+             ConexionHotel conexionHotel = new ConexionHotel()) {
+            Main programa = new Main(scanner, conexionHotel);
             programa.iniciar();
+        } catch (PersistenciaExcepcion e) {
+            System.out.println(e.getMessage());
         } catch (NoSuchElementException e) {
             System.out.println("\nfin de la entrada");
         }
     }
 
-    private void iniciar() {
+    private void iniciar() throws PersistenciaExcepcion {
+        conexionHotel.cargarDatos(hotel, usuarios);
         while (usuarios.isEmpty()) {
             System.out.println("crea el primer administrador");
             System.out.println("usa una clave de prueba, puede verse al escribir en la consola");
@@ -36,18 +63,37 @@ public class Main {
             }
         }
 
+        String usuarioInicial = ConexionDB.obtenerUsuarioHotelInicial().toLowerCase(Locale.ROOT);
+        if (!usuarios.containsKey(usuarioInicial)) {
+            usuarioInicial = "";
+        }
+
         while (true) {
-            String nombre = leer("usuario (enter para salir): ").toLowerCase(Locale.ROOT);
+            String nombre = usuarioInicial;
+            String clave;
             if (nombre.isEmpty()) {
-                return;
+                nombre = leer("usuario (enter para salir): ").toLowerCase(Locale.ROOT);
+                if (nombre.isEmpty()) {
+                    return;
+                }
+                clave = leerClave();
+            } else {
+                System.out.print("clave de " + nombre + " (enter para salir): ");
+                clave = scanner.nextLine();
+                if (clave.isEmpty()) {
+                    return;
+                }
             }
 
-            String clave = leerClave();
             UsuarioHotel usuario = usuarios.get(nombre);
             try {
                 if (usuario == null || !usuario.coincideClave(clave)) {
                     System.out.println("usuario o clave incorrectos");
-                } else if (usuario.getRol() == RolUsuario.ADMINISTRADOR) {
+                    continue;
+                }
+
+                usuarioInicial = "";
+                if (usuario.getRol() == RolUsuario.ADMINISTRADOR) {
                     menuAdministrador(usuario);
                 } else {
                     menuRecepcion();
@@ -58,7 +104,7 @@ public class Main {
         }
     }
 
-    private void menuAdministrador(UsuarioHotel usuario) {
+    private void menuAdministrador(UsuarioHotel usuario) throws PersistenciaExcepcion {
         int opcion = -1;
         do {
             System.out.println("\n--- menu administrador ---");
@@ -66,6 +112,7 @@ public class Main {
             System.out.println("2. cambiar rol");
             System.out.println("3. listar usuarios");
             System.out.println("4. agregar habitacion");
+            System.out.println("5. hacer backup");
             System.out.println("0. cerrar sesion");
 
             try {
@@ -85,6 +132,10 @@ public class Main {
                     case 4:
                         agregarHabitacion();
                         break;
+                    case 5:
+                        conexionHotel.hacerBackup();
+                        System.out.println("backup guardado en hotel_tp_copia");
+                        break;
                     case 0:
                         break;
                     default:
@@ -96,7 +147,7 @@ public class Main {
         } while (opcion != 0);
     }
 
-    private void menuRecepcion() {
+    private void menuRecepcion() throws PersistenciaExcepcion {
         int opcion = -1;
         do {
             System.out.println("\n--- menu recepcion ---");
@@ -130,14 +181,19 @@ public class Main {
                         int id = leerEntero("id de la reserva: ");
                         String dni = leer("dni del pasajero: ");
                         hotel.realizarCheckIn(id, dni);
+                        conexionHotel.guardarEstadia(hotel.buscarReserva(id));
                         System.out.println("check-in registrado");
                         break;
                     case 5:
-                        double total = hotel.realizarCheckOut(leerEntero("id de la reserva: "));
+                        int idSalida = leerEntero("id de la reserva: ");
+                        double total = hotel.realizarCheckOut(idSalida);
+                        conexionHotel.guardarEstadia(hotel.buscarReserva(idSalida));
                         System.out.printf("check-out registrado. total de la reserva: $%.2f%n", total);
                         break;
                     case 6:
-                        hotel.cancelarReserva(leerEntero("id de la reserva: "));
+                        int idCancelacion = leerEntero("id de la reserva: ");
+                        hotel.cancelarReserva(idCancelacion);
+                        conexionHotel.guardarCancelacion(hotel.buscarReserva(idCancelacion));
                         System.out.println("reserva cancelada");
                         break;
                     case 7:
@@ -170,28 +226,29 @@ public class Main {
         } while (opcion != 0);
     }
 
-    private void crearUsuario(RolUsuario rol) throws UsuarioInvalidoException {
+    private void crearUsuario(RolUsuario rol) throws UsuarioInvalidoException, PersistenciaExcepcion {
         String nombre = leer("nombre de usuario: ").toLowerCase(Locale.ROOT);
         if (usuarios.containsKey(nombre)) {
             throw new UsuarioInvalidoException("ya existe un usuario con ese nombre");
         }
         UsuarioHotel usuario = new UsuarioHotel(nombre, leerClave(), rol);
+        conexionHotel.guardarUsuario(usuario);
         usuarios.put(nombre, usuario);
         System.out.println("usuario creado");
     }
 
     private void cambiarRol(UsuarioHotel administrador)
-            throws EntradaInvalidaException, UsuarioInvalidoException {
+            throws EntradaInvalidaException, UsuarioInvalidoException, PersistenciaExcepcion {
         String nombre = leer("usuario a modificar: ").toLowerCase(Locale.ROOT);
         UsuarioHotel usuario = usuarios.get(nombre);
         if (usuario == null) {
             throw new UsuarioInvalidoException("no existe ese usuario");
         }
-        // dejamos al menos la cuenta del administrador que esta en sesion
         if (usuario == administrador) {
             throw new UsuarioInvalidoException("elegi otro usuario para cambiarle el rol");
         }
         usuario.setRol(leerRol());
+        conexionHotel.actualizarRol(usuario);
         System.out.println("rol actualizado");
     }
 
@@ -206,40 +263,48 @@ public class Main {
         throw new EntradaInvalidaException("rol invalido");
     }
 
-    private void agregarHabitacion() throws EntradaInvalidaException, HabitacionNoDisponibleException {
+    private void agregarHabitacion()
+            throws EntradaInvalidaException, HabitacionNoDisponibleException, PersistenciaExcepcion {
         int tipo = leerEntero("tipo (1 simple, 2 suite): ");
         if (tipo != 1 && tipo != 2) {
             throw new EntradaInvalidaException("tipo de habitacion invalido");
         }
         int numero = leerEntero("numero de habitacion: ");
         double precio = leerPrecio("precio por noche: ");
+        Habitacion habitacion;
         if (tipo == 1) {
             boolean matrimonial = leerSiNo("tiene cama matrimonial");
-            hotel.agregarHabitacion(new HabitacionSimple(numero, precio, matrimonial));
+            habitacion = new HabitacionSimple(numero, precio, matrimonial);
         } else {
             boolean jacuzzi = leerSiNo("tiene jacuzzi");
             double frigobar = leerPrecio("precio del frigobar: ");
-            hotel.agregarHabitacion(new HabitacionSuite(numero, precio, jacuzzi, frigobar));
+            habitacion = new HabitacionSuite(numero, precio, jacuzzi, frigobar);
         }
+        hotel.agregarHabitacion(habitacion);
+        conexionHotel.guardarHabitacion(habitacion);
         System.out.println("habitacion agregada");
     }
 
-    private void registrarPasajero() throws PasajeroInvalidoException {
+    private void registrarPasajero() throws PasajeroInvalidoException, PersistenciaExcepcion {
         String dni = leer("dni: ");
         String nombre = leer("nombre: ");
         String origen = leer("origen: ");
         String domicilio = leer("domicilio de origen: ");
-        hotel.registrarPasajero(new Pasajero(dni, nombre, origen, domicilio));
+        Pasajero pasajero = new Pasajero(dni, nombre, origen, domicilio);
+        hotel.registrarPasajero(pasajero);
+        conexionHotel.guardarPasajero(pasajero);
         System.out.println("pasajero registrado");
     }
 
     private void hacerReserva()
-            throws EntradaInvalidaException, ReservaInvalidaException, HabitacionNoDisponibleException {
+            throws EntradaInvalidaException, ReservaInvalidaException, HabitacionNoDisponibleException,
+            PersistenciaExcepcion {
         String dni = leer("dni del pasajero: ");
         int numero = leerEntero("numero de habitacion: ");
         LocalDate inicio = leerFecha("entrada");
         LocalDate fin = leerFecha("salida");
         Reserva reserva = hotel.crearReserva(dni, numero, inicio, fin);
+        conexionHotel.guardarReserva(reserva);
         System.out.println("reserva creada con id " + reserva.getIdReserva());
     }
 
@@ -255,7 +320,8 @@ public class Main {
         }
     }
 
-    private void cambiarEstadoHabitacion() throws EntradaInvalidaException, HabitacionNoDisponibleException {
+    private void cambiarEstadoHabitacion()
+            throws EntradaInvalidaException, HabitacionNoDisponibleException, PersistenciaExcepcion {
         int numero = leerEntero("numero de habitacion: ");
         int opcion = leerEntero("estado (1 disponible, 2 limpieza, 3 reparacion, 4 desinfeccion): ");
         EstadoHabitacion estado;
@@ -281,6 +347,7 @@ public class Main {
             motivo = leer("motivo: ");
         }
         hotel.cambiarEstadoHabitacion(numero, estado, motivo);
+        conexionHotel.guardarEstadoHabitacion(hotel.buscarHabitacion(numero));
         System.out.println("estado actualizado");
     }
 
