@@ -63,6 +63,16 @@ public final class Reserva implements IReservable{
         return checkInRealizado && !checkOutRealizado;
     }
 
+    public boolean isCancelada()
+    {
+        return cancelada;
+    }
+
+    public boolean isCheckOutRealizado()
+    {
+        return checkOutRealizado;
+    }
+
     //La fecha de salida queda fuera del periodo reservado.
     public boolean isActivaEnPeriodo(LocalDate ini, LocalDate fin)
     {

@@ -73,7 +73,20 @@ public class GestorHotel {
 
     public void realizarCheckIn(int idReserva)
             throws ReservaInvalidaException, HabitacionNoDisponibleException {
+        realizarCheckIn(buscarReserva(idReserva));
+    }
+
+    public void realizarCheckIn(int idReserva, String dni)
+            throws ReservaInvalidaException, HabitacionNoDisponibleException {
         Reserva reserva = buscarReserva(idReserva);
+        if (faltaDato(dni) || !reserva.getPasajero().getDni().trim().equals(dni.trim())) {
+            throw new ReservaInvalidaException("el dni no corresponde a la reserva");
+        }
+        realizarCheckIn(reserva);
+    }
+
+    private void realizarCheckIn(Reserva reserva)
+            throws ReservaInvalidaException, HabitacionNoDisponibleException {
         LocalDate hoy = LocalDate.now();
         if (hoy.isBefore(reserva.getFechaInicio()) || !hoy.isBefore(reserva.getFechaFin())) {
             throw new ReservaInvalidaException("el check-in esta fuera de las fechas de la reserva");
