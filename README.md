@@ -12,7 +12,4 @@ Sistema de hotel por consola con perfiles de administrador y recepcion.
    clave=
    ```
 
-   Si tu clave contiene una barra invertida, escribila como `\\`.
-
-3. Con MySQL iniciado en el puerto 3306, ejecuta `aplicacion.Main` desde la carpeta del proyecto. La aplicacion se conecta al arrancar y crea `hotel_tp`, `hotel_tp_copia` y las tablas que falten. La cuenta de MySQL necesita `SELECT`, `INSERT`, `UPDATE`, `CREATE` y `REFERENCES` en `hotel_tp`, y `SELECT`, `INSERT`, `DELETE` y `CREATE` en `hotel_tp_copia`. Connector/J 26.7.0 tiene soporte oficial desde MySQL Server 8.4. Se probo con una instancia local 8.0.43.
-4. La prim
+   Si tu clave cont
