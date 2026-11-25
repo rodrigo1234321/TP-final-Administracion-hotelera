@@ -20,7 +20,3 @@ Sistema de hotel por consola con perfiles de administrador y recepcion.
 Para iniciar pidiendo solo la clave del hotel, agrega `usuarioHotel=nombre` al archivo local con un usuario del hotel ya creado. Al cerrar la sesion se puede entrar con otra cuenta.
 
 ## Guardado y backup
-
-Los cambios se guardan al hacer cada operacion y se cargan al abrir el programa. Se puede usar una instancia del programa por base.
-
-La opcion 5 del administrador copia las cuatro tablas a `hotel_tp_copia`. La copia guarda los datos en el mismo servidor y reemplaza la copia anterior.
